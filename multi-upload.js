@@ -14,9 +14,14 @@ MultiUpload = new JS.Class({
     var self = this;
     this._html = Ojay( Ojay.HTML.div({className: this.klass.CONTAINER_CLASS}, function(h) {
       self._buttonPlaceholder = h.div();
+      self._uploadButton = Ojay(h.div({className: self.klass.UPLOAD_CLASS}, self.klass.UPLOAD_TEXT));
       self._errors = Ojay(h.ul({className: self.klass.ERRORS_CLASS}));
       self._list = Ojay(h.ul({className: self.klass.QUEUE_CLASS}));
     }) );
+    
+    this._uploadButton.on('click', function(button, evnt) {
+      this._getSWFUpload().startUpload();
+    }, this);
     return this._html;
   },
   
@@ -70,7 +75,7 @@ MultiUpload = new JS.Class({
       upload_complete_handler:      m('_uploadComplete')
     };
     
-    return new SWFUpload(this._settings);
+    return this._swfu = new SWFUpload(this._settings);
   },
   
   _fileQueued: function(filedata) {
@@ -80,6 +85,9 @@ MultiUpload = new JS.Class({
   },
   
   _fileQueueError: function(filedata, code) {
+    var file = new this.klass.FileProgress(this, filedata);
+    this._queue.push(file);
+    
     var err = err = SWFUpload.QUEUE_ERROR,
         msg = this.klass.MESSAGES[code];
     
@@ -97,12 +105,33 @@ MultiUpload = new JS.Class({
   },
   
   _fileDialogComplete: function() {},
-  _uploadStart: function() {},
-  _uploadProgress: function() {},
-  _uploadError: function() {},
-  _uploadSuccess: function() {},
-  _uploadComplete: function() {},
-  _queueComplete: function() {},
+  
+  _uploadStart: function(filedata) {
+    var file = this._queue[filedata.index];
+    if (!file) return;
+    file.setStatus(filedata.filestatus);
+  },
+  
+  _uploadProgress: function(filedata, sent) {
+    var file = this._queue[filedata.index];
+    if (!file) return;
+    file.setSentBytes(sent);
+  },
+  
+  _uploadError: function() {
+  
+  },
+  
+  _uploadSuccess: function(filedata) {
+    var file = this._queue[filedata.index];
+    if (!file) return;
+    file.setStatus(filedata.filestatus);
+    file.setComplete();
+  },
+  
+  _uploadComplete: function() {
+    this._getSWFUpload().startUpload();
+  },
   
   extend: {
     CONTAINER_CLASS:    'multi-upload',
@@ -121,6 +150,9 @@ MultiUpload = new JS.Class({
     BUTTON_TEXT_LEFT_PADDING: 12,
     BUTTON_TEXT_TOP_PADDING:  3,
     
+    UPLOAD_CLASS:       'upload-button',
+    UPLOAD_TEXT:        'Upload',
+    
     PREFIXES: ['', 'k', 'M', 'G', 'T'],
     
     formatSize: function(bytes) {
@@ -134,23 +166,45 @@ MultiUpload = new JS.Class({
       include: Ojay.Observable,
       
       extend: {
-        FILENAME_CLASS: 'filename'
+        FILENAME_CLASS: 'filename',
+        PROGRESS_CLASS: 'progress',
+        READY_TEXT:     'Ready',
+        SENDING_TEXT:   'Sending',
+        COMPLETE_TEXT:  'Complete'
       },
       
       initialize: function(uploader, filedata) {
         this._uploader = uploader;
         this._filedata = filedata;
+        this._status = MultiUpload.STATUSES[filedata.filestatus];
       },
       
       getHTML: function() {
         if (this._html) return this._html;
         var self = this;
-        this._html = Ojay.HTML.li(function(h) {
+        this._html = Ojay( Ojay.HTML.li({className: this._status}, function(h) {
           h.p({className: self.klass.FILENAME_CLASS},
               self._filedata.name + ' (' +
               MultiUpload.formatSize(self._filedata.size) + ')');
-        });
+          self._progress = Ojay( h.p({className: self.klass.PROGRESS_CLASS},
+              self.klass.READY_TEXT) );
+        }) );
         return this._html;
+      },
+      
+      setStatus: function(code) {
+        this.getHTML().removeClass(this._status);
+        this._status = MultiUpload.STATUSES[code];
+        this.getHTML().addClass(this._status);
+      },
+      
+      setSentBytes: function(sent) {
+        var percent = 100 * Math.round(sent / this._filedata.size);
+        this._progress.setContent(this.klass.SENDING_TEXT + ': ' + percent + '%');
+      },
+      
+      setComplete: function() {
+        this._progress.setContent(this.klass.COMPLETE_TEXT);
       }
     })
   }
@@ -164,5 +218,14 @@ MultiUpload = new JS.Class({
   msg[err.FILE_EXCEEDS_SIZE_LIMIT]  = 'File exceeds size limit';
   msg[err.ZERO_BYTE_FILE]           = 'File contains no data';
   msg[err.INVALID_FILETYPE]         = 'Invalid filetype';
+  
+  var name = MultiUpload.STATUSES = {},
+      stat = SWFUpload.FILE_STATUS;
+  
+  name[stat.QUEUED]       = 'queued';
+  name[stat.IN_PROGRESS]  = 'sending';
+  name[stat.ERROR]        = 'error';
+  name[stat.COMPLETE]     = 'complete';
+  name[stat.CANCELLED]    = 'cancelled';
 })();
 

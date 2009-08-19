@@ -8,6 +8,14 @@
     <script src="http://cdn.othermedia.com/ojay/0.4.1/core-min.js" type="text/javascript"></script>
     <script src="/swfupload.js" type="text/javascript"></script>
     <script src="/multi-upload-min.js" type="text/javascript"></script>
+    
+    <style type="text/css" media="screen">
+    .queue .queued { color: #39c0cf; }
+    .queue .sending { color: goldenrod; }
+    .queue .complete { color: #9c3; }
+    .queue .error { color: #9f3333; }
+    </style>
+    
   </head>
   <body>
     <h1>MultiUpload test</h1>
@@ -29,7 +37,7 @@
       var uploader = new MultiUpload(files, '/file', {
         fileTypes:        '*.jpg',
         fileDescription:  'Pictures',
-        sizeLimit:        700,
+        sizeLimit:        900,
         button: {
           style: 'font-weight: bold; font-size: 24px;'
         }
