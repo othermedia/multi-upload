@@ -12,6 +12,10 @@ packages:
     meta:
       requires:
         - SWFUpload
+        - JS.Class
+        - Ojay
+        - Ojay.HTML
+        - Ojay.Observable
       provides:
         - MultiUpload
 
