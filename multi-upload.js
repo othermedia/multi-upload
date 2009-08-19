@@ -79,12 +79,14 @@ MultiUpload = new JS.Class({
   },
   
   _fileQueued: function(filedata) {
+    this.notifyObservers('queue', filedata);
     var file = new this.klass.FileProgress(this, filedata);
     this._queue.push(file);
     this._list.insert(file.getHTML());
   },
   
   _fileQueueError: function(filedata, code) {
+    this.notifyObservers('queueerror', filedata, code);
     var file = new this.klass.FileProgress(this, filedata);
     this._queue.push(file);
     
@@ -107,30 +109,47 @@ MultiUpload = new JS.Class({
   _fileDialogComplete: function() {},
   
   _uploadStart: function(filedata) {
+    this.notifyObservers('uploadstart', filedata);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setStatus(filedata.filestatus);
   },
   
-  _uploadProgress: function(filedata, sent) {
+  _uploadProgress: function(filedata, sent, total) {
+    this.notifyObservers('uploadprogress', filedata, sent, total);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setSentBytes(sent);
   },
   
-  _uploadError: function() {
+  _uploadError: function(filedata, code) {
+    this.notifyObservers('uploaderror', filedata, code);
   
   },
   
   _uploadSuccess: function(filedata) {
+    this.notifyObservers('uploadsuccess', filedata);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setStatus(filedata.filestatus);
     file.setComplete();
   },
   
-  _uploadComplete: function() {
+  _uploadComplete: function(filedata) {
+    this.notifyObservers('uploadcomplete', filedata);
     this._getSWFUpload().startUpload();
+  },
+  
+  addPostParam: function(name, value) {
+    return this._getSWFUpload().addPostParam(name, value);
+  },
+  
+  removePostParam: function(name) {
+    return this._getSWFUpload().removePostParam(name);
+  },
+  
+  setPostParams: function(paramObject) {
+    return this._getSWFUpload().setPostParams(paramObject);
   },
   
   extend: {

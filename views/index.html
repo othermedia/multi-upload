@@ -42,6 +42,12 @@
           style: 'font-weight: bold; font-size: 24px;'
         }
       });
+      
+      uploader.on('uploadstart', function(up, file) {
+        var settings = {};
+        settings[file.name] = '--------------';
+        up.setPostParams(settings);
+      });
     };
     </script>
     

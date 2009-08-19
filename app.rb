@@ -10,6 +10,7 @@ post '/create' do
 end
 
 post '/file' do
+  puts params.inspect
   params['Filedata'] ? 'New file!' : 'Nothing.'
 end
 
