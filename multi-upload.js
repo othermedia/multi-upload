@@ -62,8 +62,7 @@ MultiUpload = new JS.Class({
       upload_progress_handler:      m('_uploadProgress'),
       upload_error_handler:         m('_uploadError'),
       upload_success_handler:       m('_uploadSuccess'),
-      upload_complete_handler:      m('_uploadComplete'),
-      queue_complete_handler:       m('_queueComplete')
+      upload_complete_handler:      m('_uploadComplete')
     });
   },
   
