@@ -1,0 +1,17 @@
+---
+source_directory:     .
+build_directory:      public
+layout:               together
+builds:
+  min:
+    shrink_vars:      true
+    private:          true
+packages:
+  multi-upload:
+    files: multi-upload
+    meta:
+      requires:
+        - SWFUpload
+      provides:
+        - MultiUpload
+
