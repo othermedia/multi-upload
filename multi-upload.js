@@ -1,14 +1,102 @@
+/**
+ * == multiupload ==
+ **/
+
+/** section: multiupload
+ * class MultiUpload
+ * 
+ * Before using this class, make sure you tell it where the SWFUpload
+ * Flash file is located.
+ * 
+ *     MultiUpload.FLASH_URL = '/static/flash/swfupload.swf';
+ * 
+ * This class wraps a GUI around SWFUpload for performing multiple file
+ * uploads asynchronously with progress feedback. To instantiate, provide
+ * an element reference (or CSS selector), a URL to which files should be
+ * uploaded, and an option list. For example:
+ * 
+ *     var uploader = new MultiUpload('#files', '/app/upload.html', {
+ *         button: {
+ *             // [button options]
+ *         },
+ *         // [upload options]
+ *     });
+ * 
+ * The UI provided by `MultiUpload` will be inserted into the DOM after
+ * the element referenced by `#files`. Files will be posted to (in this
+ * example) `/app/upload.html` as the `Filedata` param of an HTTP POST.
+ * 
+ * `[button options]` is s list of options that describe the appearance
+ * of the 'Browse' button, which SWFUpload will render in Flash. The
+ * available options are:
+ * 
+ *   * `width`: width of the button in pixels
+ *   * `height`: height of the button in pixels
+ *   * `image`: URL of the image to use for the button
+ *   * `text`: string of text to use for the button
+ *   * `style`: CSS string to style the text, e.g. `"font-size: 24px; font-weight: bold;"`
+ *   * `leftPadding`: left padding for the text, in pixels
+ *   * `topPadding`: top padding of the text, in pixels
+ * 
+ * `[upload options]` specifies upload validation settings. Options include:
+ * 
+ *   * `sizeLimit`: maximum filesize in kilobytes
+ *   * `fileTypes`: list of accepted file types, e.g. `"*.jpg, *.png"`
+ *   * `fileDescription`: string description of the file types, e.g. `"Pictures"`
+ * 
+ * `MultiUpload` injects the following HTML into the document after the
+ * element you specified.
+ *
+ *     <div class="multi-upload">
+ *         <div class="browse-button">
+ *             <object data="/swfupload.swf">...</object>
+ *         </div>
+ *         <div class="upload-button">Upload</div>
+ *         <ul class="errors" />
+ *         <ul class="queue" />
+ *     </div>
+ * 
+ * As the user interacts with the control, the `"errors"` list will be
+ * populated with validation errors enclosed in `<li>` tags. The
+ * `"queue"` list will fill up with `<li>` elements each containing
+ * progress information for queued files. Each `<li>` will look like this:
+ * 
+ *     <li class="[STATUS]">
+ *         <p class="filename">holiday-photo.jpg (46 kB)</p>
+ *         <p class="progress">[PROGRESS]</p>
+ *         <div class="progress-bar">
+ *             <div style="height: 100%; width: [XX]%;"></div>
+ *         </div>
+ *     </li>
+ * 
+ * `[STATUS]` will be a class reflecting the state of the upload; it
+ * will be one of `queued`, `sending`, `error`, `complete` or `cancelled`.
+ * `[PROGRESS]` will be a message telling the user the state of the
+ * file, for example `"Ready"` or `"Sending: 47%"`. `[XX]` will be a
+ * number between `0` and `100`, so the bar increases to fill the width
+ * of its parent as the file is sent.
+ **/
 MultiUpload = new JS.Class({
   include: Ojay.Observable,
   
+  /**
+   * new MultiUpload(container, endpoint, settings)
+   * - container (HTMLElement): element to insert the control after
+   * - endpoint (String): URL to post files to
+   * - settings (Object): options to configure the uploader
+   **/
   initialize: function(container, endpoint, settings) {
     this._container = Ojay(container);
     this._endpoint = endpoint;
     this._container.insert(this.getHTML(), 'after');
-    this.setup(settings);
+    this._setup(settings);
     this._queue = [];
   },
   
+  /**
+   * MultiUpload#getHTML() -> Ojay.DomCollection
+   * Returns an Ojay object wrapping the HTML for the `MultiUpload` UI.
+   **/
   getHTML: function() {
     if (this._html) return this._html;
     var self = this;
@@ -27,10 +115,18 @@ MultiUpload = new JS.Class({
     return this._html;
   },
   
-  setup: function(settings) {
+  /**
+   * MultiUpload#setup() -> undefined
+   * Initializes the `SWFUpload` object used for transfering file data.
+   **/
+  _setup: function(settings) {
     this._getSWFUpload(settings);
   },
   
+  /**
+   * MultiUpload#_getSWFUpload() -> SWFUpload
+   * Return the `SWFUpload` object used to transfer file data.
+   **/
   _getSWFUpload: function(settings) {
     if (this._swfu) return this._swfu;
     
@@ -85,6 +181,10 @@ MultiUpload = new JS.Class({
     return this._swfu = new SWFUpload(this._settings);
   },
   
+  /**
+   * MultiUpload#_fileQueued(filedata) -> undefined
+   * - filedata (Object): file data supplied by SWFUpload
+   **/
   _fileQueued: function(filedata) {
     this.notifyObservers('queue', filedata);
     var file = new this.klass.FileProgress(this, filedata);
@@ -92,6 +192,11 @@ MultiUpload = new JS.Class({
     this._list.insert(file.getHTML());
   },
   
+  /**
+   * MultiUpload#_fileQueueError(filedata, code) -> undefined
+   * - filedata (Object): file data supplied by SWFUpload
+   * - code (Number): SWFUpload error code
+   **/
   _fileQueueError: function(filedata, code) {
     this.notifyObservers('queueerror', filedata, code);
     var file = new this.klass.FileProgress(this, filedata);
@@ -113,8 +218,15 @@ MultiUpload = new JS.Class({
     this._errors.insert(Ojay.HTML.li(msg));
   },
   
+  /**
+   * MultiUpload#_fileDialogComplete() -> undefined
+   **/
   _fileDialogComplete: function() {},
   
+  /**
+   * MultiUpload#_uploadStart(filedata) -> undefined
+   * - filedata (Object): file data supplied by SWFUpload
+   **/
   _uploadStart: function(filedata) {
     this.notifyObservers('uploadstart', filedata);
     var file = this._queue[filedata.index];
@@ -122,6 +234,12 @@ MultiUpload = new JS.Class({
     file.setStatus(filedata.filestatus);
   },
   
+  /**
+   * MultiUpload#_uploadProgress(filedata, sent, total) -> undefined
+   * - filedata (Object): file data supplied by SWFUpload
+   * - sent (Number): number of bytes sent
+   * - total (Number): filesize in bytes
+   **/
   _uploadProgress: function(filedata, sent, total) {
     this.notifyObservers('uploadprogress', filedata, sent, total);
     var file = this._queue[filedata.index];
@@ -129,11 +247,20 @@ MultiUpload = new JS.Class({
     file.setSentBytes(sent);
   },
   
+  /**
+   * MultiUpload#_uploadError(filedata, code) -> undefined
+   * - filedata (Object): file data supplied by SWFUpload
+   * - code (Number): SWFUpload error code
+   **/
   _uploadError: function(filedata, code) {
     this.notifyObservers('uploaderror', filedata, code);
   
   },
   
+  /**
+   * MultiUpload#_uploadSuccess(filedata) -> undefined
+   * - filedata (Object): file data supplied by SWFUpload
+   **/
   _uploadSuccess: function(filedata) {
     this.notifyObservers('uploadsuccess', filedata);
     var file = this._queue[filedata.index];
@@ -142,39 +269,110 @@ MultiUpload = new JS.Class({
     file.setComplete();
   },
   
+  /**
+   * MultiUpload#_uploadComplete(filedata) -> undefined
+   * - filedata (Object): file data supplied by SWFUpload
+   **/
   _uploadComplete: function(filedata) {
     this.notifyObservers('uploadcomplete', filedata);
     this._getSWFUpload().startUpload();
   },
   
+  /**
+   * MultiUpload#addPostParam(name, value) -> undefined
+   * - name (String): the name of the param
+   * - value (String): the value of the param
+   **/
   addPostParam: function(name, value) {
     return this._getSWFUpload().addPostParam(name, value);
   },
   
+  /**
+   * MultiUpload#removePostParam(name) -> undefined
+   * - name (String): the name of the param
+   **/
   removePostParam: function(name) {
     return this._getSWFUpload().removePostParam(name);
   },
   
+  /**
+   * MultiUpload#setPostParams(paramObject) -> undefined
+   * - paramObject (Object): set of parameters as a JavaScript Object
+   **/
   setPostParams: function(paramObject) {
     return this._getSWFUpload().setPostParams(paramObject);
   },
   
   extend: {
-    CONTAINER_CLASS:    'multi-upload',
-    ERRORS_CLASS:       'errors',
-    QUEUE_CLASS:        'queue',
-    FLASH_URL:          null,
+    /**
+     * MultiUpload.CONTAINER_CLASS = 'multi-upload'
+     * Class applied to HTML container for the UI
+     **/
+    CONTAINER_CLASS: 'multi-upload',
     
-    SIZE_LIMIT:         0,
-    FILE_TYPES:         '*.*',
-    FILE_DESCRIPTION:   'All files',
+    /**
+     * MultiUpload.ERRORS_CLASS = 'errors'
+     * Class applied to error list in the UI
+     **/
+    ERRORS_CLASS: 'errors',
     
-    BUTTON_CLASS:       'browse-button',
-    UPLOAD_CLASS:       'upload-button',
-    UPLOAD_TEXT:        'Upload',
+    /**
+     * MultiUpload.QUEUE_CLASS = 'queue'
+     * Class applied to queue list in the UI
+     **/
+    QUEUE_CLASS: 'queue',
     
+    /**
+     * MultiUpload.FLASH_URL = null
+     * URL of the SWFUpload Flash file. Set this before using the class.
+     **/
+    FLASH_URL: null,
+    
+    /**
+     * MultiUpload.SIZE_LIMIT = 0
+     * Default file size limit (0 = unlimited)
+     **/
+    SIZE_LIMIT: 0,
+    
+    /**
+     * MultiUpload.FILE_TYPES = '*.*'
+     * Default allowed file types (all types)
+     **/
+    FILE_TYPES: '*.*',
+    
+    /**
+     * MultiUpload.FILE_DESCRIPTION = 'All files'
+     **/
+    FILE_DESCRIPTION: 'All files',
+    
+    /**
+     * MultiUpload.BUTTON_CLASS = 'browse-button'
+     * Class applied to the browse button container in the UI
+     **/
+    BUTTON_CLASS: 'browse-button',
+    
+    /**
+     * MultiUpload.UPLOAD_CLASS = 'upload-button'
+     * Class applied to the 'upload' button in the UI
+     **/
+    UPLOAD_CLASS: 'upload-button',
+    
+    /**
+     * MultiUpload.UPLOAD_TEXT = 'Upload'
+     * Text for the 'upload' button in the UI
+     **/
+    UPLOAD_TEXT: 'Upload',
+    
+    /**
+     * MultiUpload.PREFIXES = ['', 'k', 'M', 'G', 'T']
+     * Prefixes used when formatting filesizes
+     **/
     PREFIXES: ['', 'k', 'M', 'G', 'T'],
     
+    /**
+     * MultiUpload.formatBytes(bytes) -> String
+     * - bytes (Number): filesize in bytes
+     **/
     formatSize: function(bytes) {
       if (typeof bytes === 'string') return bytes;
       var power = (bytes === 0) ? 0 : Math.floor(Math.log(bytes) / Math.log(1024));
@@ -182,24 +380,64 @@ MultiUpload = new JS.Class({
              ' ' + this.PREFIXES[power] + 'B';
     },
     
+    /** section: multiupload
+     * class MultiUpload.FileProgress
+     * 
+     * This class encapsulates the UI for individual files. In generates HTML
+     * to represent the file to the user and updates the HTML as upload events
+     * are reported by SWFUpload.
+     * 
+     * See the `MultiUpload` class for examples of the generated HTML.
+     **/
     FileProgress: new JS.Class({
       include: Ojay.Observable,
       
       extend: {
+        /**
+         * MultiUpload.FileProgress.FILENAME_CLASS = 'filename'
+         **/
         FILENAME_CLASS: 'filename',
+        
+        /**
+         * MultiUpload.FileProgress.PROGRESS_CLASS = 'progress'
+         **/
         PROGRESS_CLASS: 'progress',
-        BAR_CLASS:      'progress-bar',
-        READY_TEXT:     'Ready',
-        SENDING_TEXT:   'Sending',
-        COMPLETE_TEXT:  'Complete'
+        
+        /**
+         * MultiUpload.FileProgress.BAR_CLASS = 'progress-bar'
+         **/
+        BAR_CLASS: 'progress-bar',
+        
+        /**
+         * MultiUpload.FileProgress.READY_TEXT = 'Ready'
+         **/
+        READY_TEXT: 'Ready',
+        
+        /**
+         * MultiUpload.FileProgress.SENDING_TEXT = 'Sending'
+         **/
+        SENDING_TEXT: 'Sending',
+        
+        /**
+         * MultiUpload.FileProgress.COMPLETE_TEXT = 'Complete'
+         **/
+        COMPLETE_TEXT: 'Complete'
       },
       
+      /**
+       * new MultiUpload.FileProgress(uploader, filedata)
+       * - uploader (MultiUpload): the parent MultiUpload instance
+       * - filedata (Object): file data supplied by SWFUpload
+       **/
       initialize: function(uploader, filedata) {
         this._uploader = uploader;
         this._filedata = filedata;
         this._status = MultiUpload.STATUSES[filedata.filestatus];
       },
       
+      /**
+       * MultiUpload.FileProgress#getHTML() -> Ojay.DomCollection
+       **/
       getHTML: function() {
         if (this._html) return this._html;
         var self = this;
@@ -224,18 +462,29 @@ MultiUpload = new JS.Class({
         return this._html;
       },
       
+      /**
+       * MultiUpload.FileProgress#setStatus(code) -> undefined
+       * - code (Number): status code from SWFUpload
+       **/
       setStatus: function(code) {
         this.getHTML().removeClass(this._status);
         this._status = MultiUpload.STATUSES[code];
         this.getHTML().addClass(this._status);
       },
       
+      /**
+       * MultiUpload.FileProgress#setSentBytes(sent) -> undefined
+       * - sent (Number): number of bytes so far uploaded
+       **/
       setSentBytes: function(sent) {
         var percent = 100 * Math.round(sent / this._filedata.size) + '%';
         this._progress.setContent(this.klass.SENDING_TEXT + ': ' + percent);
         this._progressBar.setStyle({width: percent});
       },
       
+      /**
+       * MultiUpload.FileProgress#setComplete() -> undefined
+       **/
       setComplete: function() {
         this._progress.setContent(this.klass.COMPLETE_TEXT);
       }
