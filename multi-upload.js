@@ -187,6 +187,7 @@ MultiUpload = new JS.Class({
       extend: {
         FILENAME_CLASS: 'filename',
         PROGRESS_CLASS: 'progress',
+        BAR_CLASS:      'progress-bar',
         READY_TEXT:     'Ready',
         SENDING_TEXT:   'Sending',
         COMPLETE_TEXT:  'Complete'
@@ -201,13 +202,24 @@ MultiUpload = new JS.Class({
       getHTML: function() {
         if (this._html) return this._html;
         var self = this;
+        
         this._html = Ojay( Ojay.HTML.li({className: this._status}, function(h) {
           h.p({className: self.klass.FILENAME_CLASS},
               self._filedata.name + ' (' +
               MultiUpload.formatSize(self._filedata.size) + ')');
           self._progress = Ojay( h.p({className: self.klass.PROGRESS_CLASS},
               self.klass.READY_TEXT) );
+          h.div({className: self.klass.BAR_CLASS}, function(h) {
+            self._progressBar = Ojay(h.div());
+          });
         }) );
+        
+        this._progressBar.setStyle({
+          overflow: 'hidden',
+          width:    0,
+          height:   '100%'
+        });
+        
         return this._html;
       },
       
@@ -218,8 +230,9 @@ MultiUpload = new JS.Class({
       },
       
       setSentBytes: function(sent) {
-        var percent = 100 * Math.round(sent / this._filedata.size);
-        this._progress.setContent(this.klass.SENDING_TEXT + ': ' + percent + '%');
+        var percent = 100 * Math.round(sent / this._filedata.size) + '%';
+        this._progress.setContent(this.klass.SENDING_TEXT + ': ' + percent);
+        this._progressBar.setStyle({width: percent});
       },
       
       setComplete: function() {
