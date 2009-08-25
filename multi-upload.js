@@ -13,7 +13,9 @@ MultiUpload = new JS.Class({
     if (this._html) return this._html;
     var self = this;
     this._html = Ojay( Ojay.HTML.div({className: this.klass.CONTAINER_CLASS}, function(h) {
-      self._buttonPlaceholder = h.div();
+      h.div({className: self.klass.BUTTON_CLASS}, function(h) {
+        self._buttonPlaceholder = h.div();
+      });
       self._uploadButton = Ojay(h.div({className: self.klass.UPLOAD_CLASS}, self.klass.UPLOAD_TEXT));
       self._errors = Ojay(h.ul({className: self.klass.ERRORS_CLASS}));
       self._list = Ojay(h.ul({className: self.klass.QUEUE_CLASS}));
@@ -52,18 +54,6 @@ MultiUpload = new JS.Class({
       debug:                    false,
 
       button_placeholder:       this._buttonPlaceholder,
-      button_width:             button.width  || k.BUTTON_WIDTH,
-      button_height:            button.height || k.BUTTON_HEIGHT,
-
-      button_text:              '<span class="mu-button-text">' + 
-                                (button.text   || k.BUTTON_TEXT) +
-                                '</span>',
-
-      button_text_style:        '.mu-button-text {' +
-                                (button.style  || k.BUTTON_TEXT_STYLE) + '}',
-
-      button_text_left_padding: button.leftPadding || k.BUTTON_TEXT_LEFT_PADDING,
-      button_text_top_padding:  button.topPadding  || k.BUTTON_TEXT_TOP_PADDING,
 
       file_queued_handler:          m('_fileQueued'),
       file_queue_error_handler:     m('_fileQueueError'),
@@ -74,6 +64,23 @@ MultiUpload = new JS.Class({
       upload_success_handler:       m('_uploadSuccess'),
       upload_complete_handler:      m('_uploadComplete')
     };
+    
+    var merge = function(target, source, transform) {
+      var value = button[source];
+      if (!value) return;
+      if (transform) value = transform(value);
+      this._settings[target] = value;
+    }.bind(this);
+    
+    merge('button_width',     'width');
+    merge('button_height',    'height');
+    merge('button_image_url', 'image');
+    
+    merge('button_text', 'text', function(s) { return '<span class="mu-button-text">'+s+'</span>' });
+    merge('button_text_style', 'style', function(s) { return '.mu-button-text {'+s+'}' });
+    
+    merge('button_text_left_padding', 'leftPadding');
+    merge('button_text_top_padding',  'topPadding');
     
     return this._swfu = new SWFUpload(this._settings);
   },
@@ -162,13 +169,7 @@ MultiUpload = new JS.Class({
     FILE_TYPES:         '*.*',
     FILE_DESCRIPTION:   'All files',
     
-    BUTTON_WIDTH:       150,
-    BUTTON_HEIGHT:      50,
-    BUTTON_TEXT:        'Browse',
-    BUTTON_TEXT_STYLE:  'font-size: 24px;',
-    BUTTON_TEXT_LEFT_PADDING: 12,
-    BUTTON_TEXT_TOP_PADDING:  3,
-    
+    BUTTON_CLASS:       'browse-button',
     UPLOAD_CLASS:       'upload-button',
     UPLOAD_TEXT:        'Upload',
     
