@@ -41,7 +41,7 @@
  * `[upload options]` specifies upload validation settings. Options include:
  * 
  *   * `sizeLimit`: maximum filesize in kilobytes
- *   * `fileTypes`: list of accepted file types, e.g. `"*.jpg, *.png"`
+ *   * `fileTypes`: list of accepted file types, e.g. `"*.jpg;*.png"`
  *   * `fileDescription`: string description of the file types, e.g. `"Pictures"`
  * 
  * `MultiUpload` injects the following HTML into the document after the
