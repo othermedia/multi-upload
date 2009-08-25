@@ -193,12 +193,13 @@ MultiUpload = new JS.Class({
   },
   
   /**
-   * MultiUpload#_fileQueueError(filedata, code) -> undefined
+   * MultiUpload#_fileQueueError(filedata, code, message) -> undefined
    * - filedata (Object): file data supplied by SWFUpload
    * - code (Number): SWFUpload error code
+   * - message (String): error message from SWFUpload
    **/
-  _fileQueueError: function(filedata, code) {
-    this.notifyObservers('queueerror', filedata, code);
+  _fileQueueError: function(filedata, code, message) {
+    this.notifyObservers('queueerror', filedata, code, message);
     var file = new this.klass.FileProgress(this, filedata);
     this._queue.push(file);
     
@@ -248,25 +249,30 @@ MultiUpload = new JS.Class({
   },
   
   /**
-   * MultiUpload#_uploadError(filedata, code) -> undefined
+   * MultiUpload#_uploadError(filedata, code, message) -> undefined
    * - filedata (Object): file data supplied by SWFUpload
    * - code (Number): SWFUpload error code
+   * - message (String): error message from SWFUpload
    **/
-  _uploadError: function(filedata, code) {
-    this.notifyObservers('uploaderror', filedata, code);
-  
+  _uploadError: function(filedata, code, message) {
+    this.notifyObservers('uploaderror', filedata, code, message);
+    var file = this._queue[filedata.index];
+    if (!file) return;
+    file.setStatus(filedata.filestatus);
+    file.setError(message);
   },
   
   /**
    * MultiUpload#_uploadSuccess(filedata) -> undefined
    * - filedata (Object): file data supplied by SWFUpload
+   * - serverData (Object): data returned by the server
    **/
-  _uploadSuccess: function(filedata) {
-    this.notifyObservers('uploadsuccess', filedata);
+  _uploadSuccess: function(filedata, serverData) {
+    this.notifyObservers('uploadsuccess', filedata, serverData);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setStatus(filedata.filestatus);
-    file.setComplete();
+    file.setSuccess();
   },
   
   /**
@@ -483,10 +489,18 @@ MultiUpload = new JS.Class({
       },
       
       /**
-       * MultiUpload.FileProgress#setComplete() -> undefined
+       * MultiUpload.FileProgress#setSuccess() -> undefined
        **/
-      setComplete: function() {
+      setSuccess: function() {
         this._progress.setContent(this.klass.COMPLETE_TEXT);
+      },
+      
+      /**
+       * MultiUpload.FileProgress#setError(message) -> undefined
+       * - message (String): error message from SWFUpload
+       **/
+      setError: function(message) {
+        this._progress.setContent(message);
       }
     })
   }
