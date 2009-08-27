@@ -186,8 +186,8 @@ MultiUpload = new JS.Class({
    * - filedata (Object): file data supplied by SWFUpload
    **/
   _fileQueued: function(filedata) {
-    this.notifyObservers('queue', filedata);
     var file = new this.klass.FileProgress(this, filedata);
+    this.notifyObservers('queue', file);
     this._queue.push(file);
     this._list.insert(file.getHTML());
   },
@@ -199,8 +199,8 @@ MultiUpload = new JS.Class({
    * - message (String): error message from SWFUpload
    **/
   _fileQueueError: function(filedata, code, message) {
-    this.notifyObservers('queueerror', filedata, code, message);
     var file = new this.klass.FileProgress(this, filedata);
+    this.notifyObservers('queueerror', file, code, message);
     this._queue.push(file);
     
     var err = err = SWFUpload.QUEUE_ERROR,
@@ -229,10 +229,10 @@ MultiUpload = new JS.Class({
    * - filedata (Object): file data supplied by SWFUpload
    **/
   _uploadStart: function(filedata) {
-    this.notifyObservers('uploadstart', filedata);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setStatus(filedata.filestatus);
+    this.notifyObservers('uploadstart', file);
   },
   
   /**
@@ -242,10 +242,10 @@ MultiUpload = new JS.Class({
    * - total (Number): filesize in bytes
    **/
   _uploadProgress: function(filedata, sent, total) {
-    this.notifyObservers('uploadprogress', filedata, sent, total);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setSentBytes(sent);
+    this.notifyObservers('uploadprogress', file, sent, total);
   },
   
   /**
@@ -255,11 +255,11 @@ MultiUpload = new JS.Class({
    * - message (String): error message from SWFUpload
    **/
   _uploadError: function(filedata, code, message) {
-    this.notifyObservers('uploaderror', filedata, code, message);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setStatus(filedata.filestatus);
     file.setError(message);
+    this.notifyObservers('uploaderror', file, code, message);
   },
   
   /**
@@ -268,11 +268,11 @@ MultiUpload = new JS.Class({
    * - serverData (Object): data returned by the server
    **/
   _uploadSuccess: function(filedata, serverData) {
-    this.notifyObservers('uploadsuccess', filedata, serverData);
     var file = this._queue[filedata.index];
     if (!file) return;
     file.setStatus(filedata.filestatus);
     file.setSuccess();
+    this.notifyObservers('uploadsuccess', file, serverData);
   },
   
   /**
@@ -280,8 +280,10 @@ MultiUpload = new JS.Class({
    * - filedata (Object): file data supplied by SWFUpload
    **/
   _uploadComplete: function(filedata) {
-    this.notifyObservers('uploadcomplete', filedata);
+    var file = this._queue[filedata.index];
+    if (!file) return;
     this._getSWFUpload().startUpload();
+    this.notifyObservers('uploadcomplete', file);
   },
   
   /**
@@ -449,14 +451,14 @@ MultiUpload = new JS.Class({
         var self = this;
         
         this._html = Ojay( Ojay.HTML.li({className: this._status}, function(h) {
-          h.p({className: self.klass.FILENAME_CLASS},
+          self._filename = Ojay( h.p({className: self.klass.FILENAME_CLASS},
               self._filedata.name + ' (' +
-              MultiUpload.formatSize(self._filedata.size) + ')');
+              MultiUpload.formatSize(self._filedata.size) + ')') );
           self._progress = Ojay( h.p({className: self.klass.PROGRESS_CLASS},
               self.klass.READY_TEXT) );
-          h.div({className: self.klass.BAR_CLASS}, function(h) {
+          self._bar = Ojay( h.div({className: self.klass.BAR_CLASS}, function(h) {
             self._progressBar = Ojay(h.div());
-          });
+          }) );
         }) );
         
         this._progressBar.setStyle({
@@ -466,6 +468,27 @@ MultiUpload = new JS.Class({
         });
         
         return this._html;
+      },
+      
+      /**
+       * MultiUpload.FileProgress#getFilenameElement() -> Ojay.DomCollection
+       **/
+      getFilenameElement: function() {
+        return this._filename;
+      },
+      
+      /**
+       * MultiUpload.FileProgress#getProgressElement() -> Ojay.DomCollection
+       **/
+      getProgressElement: function() {
+        return this._progress;
+      },
+      
+      /**
+       * MultiUpload.FileProgress#getProgressBar() -> Ojay.DomCollection
+       **/
+      getProgressBar: function() {
+        return this._bar;
       },
       
       /**
