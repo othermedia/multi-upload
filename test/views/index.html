@@ -61,7 +61,7 @@
         
         uploader.on('uploadstart', function(up, file) {
           var settings = {};
-          settings[file.name] = '--------------';
+          settings[file.get('name')] = '--------------';
           up.setPostParams(settings);
         });
     });

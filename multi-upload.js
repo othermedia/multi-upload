@@ -444,6 +444,14 @@ MultiUpload = new JS.Class({
       },
       
       /**
+       * MultiUpload.FileProgress#get(key) -> Object
+       * - key (String): the name of the value to retrieve
+       **/
+      get: function(key) {
+        return this._filedata[key];
+      },
+      
+      /**
        * MultiUpload.FileProgress#getHTML() -> Ojay.DomCollection
        **/
       getHTML: function() {
