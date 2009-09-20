@@ -1,6 +1,6 @@
 ---
 source_directory:     .
-build_directory:      public
+build_directory:      .
 layout:               together
 builds:
   min:
