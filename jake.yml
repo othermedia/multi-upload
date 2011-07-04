@@ -8,7 +8,8 @@ builds:
     private:          true
 packages:
   multi-upload:
-    files: multi-upload
+    files:
+      - multi-upload
     meta:
       requires:
         - SWFUpload
@@ -18,4 +19,3 @@ packages:
         - Ojay.Observable
       provides:
         - MultiUpload
-
